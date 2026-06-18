@@ -7,12 +7,14 @@ const router = express.Router()
 // api to add anew note
 router.post('/add', middleware, async (req, res) => {
    try{
-       const { title, description } = req.body;
+       const { title, description, isPinned, color } = req.body;
        
 
        const newNote = new Note({
         title,
         description,
+        isPinned: isPinned || false,
+        color: color || 'bg-white',
         userId: req.user.id
        })
 

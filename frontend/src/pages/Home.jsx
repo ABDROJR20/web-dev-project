@@ -7,10 +7,11 @@ import axios from 'axios'
 import { useAuth } from '../context/ContextProvider'
 import { toast } from 'react-toastify'
 import { API_BASE_URL } from '../constants/Constants'
+import { FaTwitter, FaGithub, FaLinkedin, FaInstagram, FaHeart, FaBookOpen, FaRegSmile, FaLightbulb } from 'react-icons/fa'
 
 const Home = () => {
   const [isModelOpen, setModelOpen] = useState(false)
-  const [filteredNotes, setFilterNote] = useState(false) //save the filtered notes
+  const [filteredNotes, setFilterNote] = useState([]) //save the filtered notes
   const [notes, setNotes] = useState([])
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -66,11 +67,11 @@ const Home = () => {
   }
 
   //add note fucntion
-  const addNote = async (title, description) => {
+  const addNote = async (title, description, isPinned, color) => {
     try {
       const response = await axios.post(
         `${API_BASE_URL}note/add`,
-        { title, description },
+        { title, description, isPinned, color },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`
@@ -87,11 +88,11 @@ const Home = () => {
   }
 
   //edit function
-  const editNote = async (id, title, description) => {
+  const editNote = async (id, title, description, isPinned, color) => {
     try {
       const response = await axios.put(
         `${API_BASE_URL}note/${id}`,
-        { title, description },
+        { title, description, isPinned, color },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`
@@ -128,29 +129,57 @@ const Home = () => {
     }
   }
 
+  const sortedNotes = [...filteredNotes].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
 return (
-  <div className="bg-[#f9f9fb] min-h-screen text-slate-800 selection:bg-rose-200 selection:text-rose-900 font-sans antialiased flex flex-col justify-between">
+  <div className="bg-gradient-to-br from-indigo-50/50 via-white to-cyan-50/50 min-h-screen text-slate-800 selection:bg-indigo-200 selection:text-indigo-900 font-sans antialiased flex flex-col justify-between">
     
     {/* Global Header Wrapper */}
-    <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-8 shadow-sm transition-all duration-300">
-      <Navbar setQuery={setQuery} />
+    <div className="border-b border-gray-200/50 bg-white/60 backdrop-blur-2xl sticky top-0 z-40 px-4 sm:px-8 transition-all duration-300">
+      <div className="max-w-[90rem] mx-auto">
+        <Navbar setQuery={setQuery} />
+      </div>
     </div>
 
     {/* Main Content Workspace Container */}
-    <div className="max-w-7xl mx-auto w-full px-4 sm:px-8 pt-8 pb-16 flex-grow flex flex-col justify-center">
+    <div className="max-w-[90rem] mx-auto w-full px-4 sm:px-8 flex-grow flex flex-col">
       {user ? (
-        <>
-          {/* Main Notes Grid with Responsive Heights & Layout */}
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
-            {filteredNotes.length > 0 ? (
-              filteredNotes.map(note => (
+        <div className="py-10">
+          
+          {/* Authenticated Dashboard Header */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-2 flex items-center gap-3">
+                Welcome back, {user.name.split(' ')[0]} <FaRegSmile className="text-indigo-500" />
+              </h1>
+              <p className="text-gray-500 font-medium">
+                You have {sortedNotes.length} notes in your workspace.
+              </p>
+            </div>
+            
+            <button
+              onClick={() => setModelOpen(true)}
+              className="group flex items-center justify-center gap-2 px-6 py-3.5 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold shadow-lg shadow-gray-900/20 hover:shadow-xl transition-all duration-300 active:scale-95"
+            >
+              <svg className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+              Create New Note
+            </button>
+          </div>
+
+          {/* Main Notes Grid */}
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 auto-rows-fr">
+            {sortedNotes.length > 0 ? (
+              sortedNotes.map(note => (
                 <div 
                   key={note._id} 
-                  className="group relative bg-white rounded-xl border border-slate-200/70 p-6 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.1)] hover:border-rose-500/30 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 overflow-hidden"
+                  className="group relative flex flex-col justify-between hover:-translate-y-1.5 overflow-hidden transition-all duration-300 h-full"
                 >
-                  {/* Subtle decorative top-accent on hover */}
-                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-rose-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                  
                   <NoteCard 
                     note={note} 
                     onEdit={onEdit}
@@ -159,39 +188,24 @@ return (
                 </div>
               ))
             ) : (
-              /* Upgraded Empty State Graphic Concept */
-              <div className="col-span-full flex flex-col items-center justify-center py-20 px-4 border-2 border-dashed border-slate-200 rounded-2xl bg-white/50 text-center">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-400">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              /* Premium Empty State */
+              <div className="col-span-full flex flex-col items-center justify-center py-24 px-4 border-2 border-dashed border-indigo-100 rounded-[2rem] bg-white/40 text-center">
+                <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mb-6 text-indigo-500 shadow-inner">
+                  <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-700 mb-1">Your canvas is blank</h3>
-                <p className="text-sm text-slate-500 max-w-sm">Capture your system workflows, architectural maps, or daily thoughts. Click the action button below to start.</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">It's quiet here...</h3>
+                <p className="text-base text-gray-500 max-w-sm mb-6">Start organizing your thoughts, tasks, and ideas by creating your first note.</p>
+                <button
+                  onClick={() => setModelOpen(true)}
+                  className="px-6 py-2.5 bg-white border-2 border-gray-200 hover:border-gray-900 text-gray-900 rounded-xl font-bold transition-all duration-300"
+                >
+                  Create Note
+                </button>
               </div>
             )}
           </div>
-
-          {/* Active Workspace Footer Info block */}
-          <div className="mt-16 border-t border-slate-200/60 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-400 font-medium">
-            <div className="flex items-center gap-4">
-              <span>Total Records: <strong className="text-slate-600 font-semibold">{filteredNotes.length}</strong></span>
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-              <span>Storage: <strong className="text-slate-600 font-semibold">Local MongoDB Engine</strong></span>
-            </div>
-            <div>
-              <span>Tip: Use the top search index bar to filter notes instantly</span>
-            </div>
-          </div>
-
-          {/* Upgraded Floating Action Button */}
-          <button
-            onClick={() => setModelOpen(true)}
-            aria-label="Create new note"
-            className="fixed right-6 bottom-6 md:right-10 md:bottom-10 z-50 flex items-center justify-center w-14 h-14 md:w-16 md:h-16 bg-rose-600 hover:bg-rose-700 text-white rounded-full shadow-[0_8px_24px_-6px_rgba(225,29,72,0.5)] hover:shadow-[0_12px_32px_-4px_rgba(225,29,72,0.7)] hover:scale-110 active:scale-95 active:translate-y-0 transition-all duration-300 group ease-out focus:outline-none focus:ring-4 focus:ring-rose-500/30"
-          >
-            <span className="text-3xl font-light tracking-tight transition-transform duration-300 group-hover:rotate-90">＋</span>
-          </button>
 
           {/* Modal Overlay Layer wrapper */}
           {isModelOpen && (
@@ -205,50 +219,67 @@ return (
               />
             </div>
           )}
-        </>
+        </div>
       ) : (
-        /* Hand-Crafted Studio Guest Layout */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full my-auto py-8">
+        /* Stunning Landing Page for Unauthenticated Users */
+        <div className="flex flex-col items-center justify-center py-20 lg:py-32 text-center px-4 flex-grow relative">
           
-          {/* Left Column: Bold Editorial Typography */}
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-rose-50 border border-rose-100 rounded-full text-xs font-semibold text-rose-600 uppercase tracking-wider">
-              Local Workspace v1.0
-            </div>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.1]">
-              Organize your thoughts <br />
-              <span className="bg-gradient-to-r from-rose-600 via-pink-600 to-rose-700 bg-clip-text text-transparent">
-                without the noise.
-              </span>
-            </h1>
-            <p className="text-base sm:text-lg text-slate-500 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed">
-              A streamlined interface for structural planning, clean code snippets, and daily notes. Completely local, fast, and secure.
-            </p>
+          {/* Decorative background blobs */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-indigo-200/40 to-purple-200/40 blur-[100px] rounded-full -z-10 pointer-events-none"></div>
+
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-indigo-100 text-indigo-600 text-sm font-bold mb-8 shadow-sm">
+            <FaLightbulb className="text-indigo-500" /> Your Second Brain
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tight mb-6 max-w-4xl mx-auto leading-[1.1]">
+            Capture your thoughts, <br className="hidden md:block"/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+              organize your life.
+            </span>
+          </h1>
+          
+          <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed font-medium">
+            The beautifully simple note-taking website designed to help you focus on what matters. 
+            No clutter, just your ideas synced securely.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto">
+            <Link 
+              to="/register" 
+              className="px-8 py-4 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold text-lg transition-all duration-300 shadow-xl shadow-gray-900/20 hover:shadow-2xl hover:-translate-y-1 w-full sm:w-auto"
+            >
+              Start for free
+            </Link>
+            <Link 
+              to="/login" 
+              className="px-8 py-4 bg-white border-2 border-gray-200 hover:border-gray-900 text-gray-900 rounded-2xl font-bold text-lg transition-all duration-300 w-full sm:w-auto hover:bg-gray-50"
+            >
+              Log in to account
+            </Link>
           </div>
 
-          {/* Right Column: Clean Floating Authentication Frame */}
-          <div className="lg:col-span-5 flex justify-center lg:justify-end">
-            <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-2xl p-8 shadow-[0_15px_40px_-12px_rgba(0,0,0,0.04)] relative overflow-hidden group">
-              {/* Abstract structural alignment lines to look engineered */}
-              <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-bl-full -z-10 transition-colors group-hover:bg-rose-50/50" />
-              
-              <div className="w-11 h-11 bg-rose-50 rounded-xl flex items-center justify-center mb-5 text-rose-600">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+          {/* Feature Grid Demo */}
+          <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl text-left">
+            <div className="bg-white/60 backdrop-blur-xl p-8 rounded-[2rem] border border-white shadow-xl shadow-indigo-100/50">
+              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </div>
-              
-              <h2 className="text-xl font-extrabold text-slate-800 mb-2">Access Protected</h2>
-              <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                Please authenticate your active workspace session to map records to your system database.
-              </p>
-              
-              <Link 
-                to="/login" 
-                className="inline-flex items-center justify-center w-full px-5 py-3 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.99] focus:outline-none"
-              >
-                Sign In to Dashboard
-              </Link>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Lightning Fast</h3>
+              <p className="text-gray-500 font-medium">Capture ideas the moment they arrive. Our interface is built for speed and efficiency.</p>
+            </div>
+            <div className="bg-white/60 backdrop-blur-xl p-8 rounded-[2rem] border border-white shadow-xl shadow-purple-100/50">
+              <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-6">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Colorize & Pin</h3>
+              <p className="text-gray-500 font-medium">Organize visually. Color code your notes and pin the most important ones to the top.</p>
+            </div>
+            <div className="bg-white/60 backdrop-blur-xl p-8 rounded-[2rem] border border-white shadow-xl shadow-pink-100/50">
+              <div className="w-12 h-12 bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center mb-6">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Secure & Private</h3>
+              <p className="text-gray-500 font-medium">Your thoughts belong to you. Everything is safely stored and only accessible by you.</p>
             </div>
           </div>
 
@@ -256,17 +287,51 @@ return (
       )}
     </div>
 
-    {/* Minimalist Fixed Industrial Footer */}
-    <div className="w-full border-t border-slate-200/50 py-4 px-4 sm:px-8 bg-white/40">
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-xs font-bold tracking-widest text-slate-400 uppercase gap-2">
-        <div>© {new Date().getFullYear()} NoteApp Architecture</div>
-        <div className="flex gap-4">
-          <span>React 18</span>
-          <span>Tailwind v3</span>
-          <span>MongoDB Local</span>
+    {/* Human-Friendly Proper Footer */}
+    <footer className="w-full bg-white border-t border-gray-100 mt-auto pt-16 pb-8 px-4 sm:px-8 z-10">
+      <div className="max-w-[90rem] mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-10 mb-12 text-center md:text-left">
+          
+          {/* Brand & Description */}
+          <div className="max-w-sm">
+            <Link to="/" className="text-2xl font-black tracking-tighter flex items-center justify-center md:justify-start gap-2 mb-4 hover:opacity-80 transition-opacity text-gray-900">
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-2 rounded-xl shadow-sm">
+                <FaBookOpen className="text-xl" />
+              </div>
+              Note<span className="text-indigo-600">Sync</span>
+            </Link>
+            <p className="text-gray-500 leading-relaxed font-medium">
+              Your friendly space to jot down ideas, plan your university projects, and organize your daily life without any distractions.
+            </p>
+          </div>
+
+          {/* Quick Links */}
+          <div className="flex gap-12 sm:gap-20">
+            <div className="flex flex-col gap-3">
+              <h4 className="font-bold text-gray-900 mb-2">Platform</h4>
+              <Link to="/" className="text-gray-500 hover:text-indigo-600 font-medium transition-colors">Home</Link>
+              <Link to="/login" className="text-gray-500 hover:text-indigo-600 font-medium transition-colors">Log in</Link>
+              <Link to="/register" className="text-gray-500 hover:text-indigo-600 font-medium transition-colors">Sign up</Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Socials & Copyright */}
+        <div className="flex flex-col sm:flex-row justify-between items-center pt-8 border-t border-gray-100 gap-6">
+          <div className="text-gray-500 font-medium flex flex-col sm:flex-row items-center gap-3 text-sm text-center sm:text-left">
+            <span>&copy; {new Date().getFullYear()} NoteSync Inc. All rights reserved.</span>
+          
+          </div>
+          
+          <div className="flex items-center gap-6 text-gray-400">
+            <a href="#" className="hover:text-indigo-600 hover:-translate-y-1 transition-all duration-300"><FaTwitter className="text-2xl" /></a>
+            <a href="#" className="hover:text-gray-900 hover:-translate-y-1 transition-all duration-300"><FaGithub className="text-2xl" /></a>
+            <a href="#" className="hover:text-indigo-600 hover:-translate-y-1 transition-all duration-300"><FaLinkedin className="text-2xl" /></a>
+            <a href="#" className="hover:text-rose-600 hover:-translate-y-1 transition-all duration-300"><FaInstagram className="text-2xl" /></a>
+          </div>
         </div>
       </div>
-    </div>
+    </footer>
 
   </div>
 )
