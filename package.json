@@ -1,0 +1,14 @@
+{
+  "name": "amna-mern-10pshine",
+  "version": "1.0.0",
+  "description": "MERN Stack Project",
+  "main": "index.js",
+  "scripts": {
+    "client": "npm run dev --prefix frontend",
+    "server": "npm run start --prefix server",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
